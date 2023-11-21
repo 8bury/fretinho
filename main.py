@@ -20,12 +20,24 @@ def pedir_cep(uf, localidade, logradouro):
     else:
         return {'erro': 'True'}
     
+def calculardistancia(cep1, cep2):
 
+    api_file = open('apikey.txt', 'r')
+    api_key = api_file.read()
+    api_file.close()
+
+    link = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric'
+    requisicao = requests.get(link + '&origins=' + cep1 + '&destinations=' + cep2 + '&key=' + api_key)
+    tempo = requisicao.json()['rows'][0]['elements'][0]['duration']['value']
+    #emsegundos
+    distancia = requisicao.json()['rows'][0]['elements'][0]['distance']['value']
+    #emmetros
+    return tempo, distancia
 
 def entercontinuar():
     input('\nPressione enter para continuar...\n')
 
-opcoes = ['Buscar Endereço por CEP', 'Buscar CEP por endereço', 'Sair']
+opcoes = ['Buscar Endereço por CEP', 'Buscar CEP por endereço', 'Calcular Frete', 'Sair']
 
 bairro = ''
 while loop:
@@ -74,6 +86,11 @@ while loop:
                 pprint.pprint(enderecospossiveis[1])
                 entercontinuar()
     elif input_usuario == 3:
+        cep1 = input('Digite o CEP de origem: ')
+        cep2 = input('Digite o CEP de destino: ')
+        distancia = calculardistancia(cep1, cep2)
+        pprint.pprint(distancia)
+    elif input_usuario == 4:
         loop = False
     else:
         print('\nDigite uma opção válida')
