@@ -10,7 +10,6 @@ def pedir_endereço(cep):
     if requisicao.status_code == 200:
         return requisicao.json()
 
-
 def pedir_cep(uf, localidade, logradouro):
     link = f'https://viacep.com.br/ws/{uf}/{localidade}/{logradouro}/json/'
     requisicao = requests.get(link)
@@ -20,7 +19,7 @@ def pedir_cep(uf, localidade, logradouro):
     else:
         return {'erro': 'True'}
     
-def calculardistancia(cep1, cep2):
+def calculardistanciatempo(cep1, cep2):
 
     api_file = open('apikey.txt', 'r')
     api_key = api_file.read()
@@ -88,8 +87,7 @@ while loop:
     elif input_usuario == 3:
         cep1 = input('Digite o CEP de origem: ')
         cep2 = input('Digite o CEP de destino: ')
-        distancia = calculardistancia(cep1, cep2)
-        pprint.pprint(distancia)
+        tempo, distancia = calculardistanciatempo(cep1, cep2)
     elif input_usuario == 4:
         loop = False
     else:
