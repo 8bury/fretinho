@@ -27,16 +27,17 @@ def calculardistanciatempo(cep1, cep2):
 
     link = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric'
     requisicao = requests.get(link + '&origins=' + cep1 + '&destinations=' + cep2 + '&key=' + api_key)
-    print(requisicao.json())
-    if 'ZERO_RESULTS' in requisicao.json()['rows'][0]['elements'][0]['status']:
+    if 'ZERO_RESULTS' in requisicao.json()['rows'][0]['elements'][0]['status'] or 'NOT_FOUND' in requisicao.json()['rows'][0]['elements'][0]['status']:
         return 'erro', 'erro'
     else:
         tempo = requisicao.json()['rows'][0]['elements'][0]['duration']['value']
+        tempotext = requisicao.json()['rows'][0]['elements'][0]['duration']['text']
         #emsegundos
         
         distancia = requisicao.json()['rows'][0]['elements'][0]['distance']['value']
+        distanciatext = requisicao.json()['rows'][0]['elements'][0]['distance']['text']
         #emmetros
-        return tempo, distancia
+        return tempo, distancia, tempotext, distanciatext
 
 def entercontinuar():
     input('\nPressione enter para continuar...\n')
@@ -82,17 +83,26 @@ while loop:
             if bairro != '':
                 for endereco in enderecospossiveis:
                     if bairro in endereco['bairro']:
-                        pprint.pprint(endereco)
+                        print(f'\nCEP: {endereco["cep"]}')
+                        print(f'Rua: {endereco["logradouro"]}')
+                        print(f'Bairro: {endereco["bairro"]}')
+                        print(f'Cidade: {endereco["localidade"]}')
+                        print(f'Estado: {endereco["uf"]}')
                         entercontinuar()
                         break
                         #dps nois tira o break
             else:
-                pprint.pprint(enderecospossiveis[1])
+                print(f'\nCEP: {enderecospossiveis[0]["cep"]}')
+                print(f'Rua: {enderecospossiveis[0]["logradouro"]}')
+                print(f'Bairro: {enderecospossiveis[0]["bairro"]}')
+                print(f'Cidade: {enderecospossiveis[0]["localidade"]}')
+                print(f'Estado: {enderecospossiveis[0]["uf"]}')
+
                 entercontinuar()
     elif input_usuario == 3:
         cep1 = input('Digite o CEP ou endereço de origem: ')
         cep2 = input('Digite o CEP ou endereço de destino: ')
-        tempo, distancia = calculardistanciatempo(cep1, cep2)
+        tempo, distancia, tempotext, distanciatext = calculardistanciatempo(cep1, cep2)
         print(tempo, distancia)
         if tempo and distancia == 'erro':
             print('Erro ao calcular a distância ou tempo, tente novamente.')
@@ -105,23 +115,23 @@ while loop:
             comprimento = float(dimensões[2])
             peso = float(dimensões[3])
             volume = largura * altura * comprimento
-            print(volume)
-            frete = 15
+            frete = 10
             #acima de 2 metroscubicos, o valor fica maior
-            if volume < 2000000:
-                frete = 0.0005 * distancia
+            if distancia < 80000:
+                frete += 0.0005 * distancia
+            elif distancia < 200000:
+                frete += 0.0002 * distancia
             else:
-                frete = 0.001 * distancia
-            #acima de 300km, o valor fica menor e tem um desconto dependendo da distância, quanto maior, maior o desconto
-            if distancia > 300000:
-                frete /= (distancia//1000)/100
-            #acima de 10kg, o valor fica maior
-            if peso > 5:
-                frete += 1.5 * peso
-            
-            print(distancia//1000)
-            print(f'\nTempo estimado para entrega: {tempo//60} minutos e {tempo%60} segundos')
+                frete += 0.000025 * distancia
+            if volume > 1000000:
+                #se for maior que 1 metros cubicos, o valor do frete aumenta
+                #para cada 1000cm cubicos ou 0,0001 metrocubicos, o valor do frete aumenta 1 real
+                frete += (volume-1000000)*0.0001
+            print(f'\nDistância: {distanciatext}')
+            print(f'volume: {volume/1000000} metros cúbicos')
+            print(f'\nTempo estimado para entrega: {tempotext}')
             print(f'Frete estimado: R$ {frete}')
+            entercontinuar()
     elif input_usuario == 4:
         loop = False
     else:
