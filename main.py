@@ -127,6 +127,10 @@ while loop:
                 #se for maior que 1 metros cubicos, o valor do frete aumenta
                 #para cada 1000cm cubicos ou 0,0001 metrocubicos, o valor do frete aumenta 1 real
                 frete += (volume-1000000)*0.0001
+            if peso > 10:
+                #se for maior que 10kg, o valor do frete aumenta
+                #para cada 1kg, o valor do frete aumenta 50 centavos
+                frete += (peso-10)/2
             print(f'\nDistância: {distanciatext}')
             print(f'volume: {volume/1000000} metros cúbicos')
             print(f'\nTempo estimado para entrega: {tempotext}')
