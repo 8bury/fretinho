@@ -1,19 +1,16 @@
 import requests
 import pprint
-import pandas as pd
 loop = True
 
 def pedir_endereço(cep):
     link = f'https://viacep.com.br/ws/{cep}/json/'
     requisicao = requests.get(link)
-    print(requisicao)
     if requisicao.status_code == 200:
         return requisicao.json()
 
 def pedir_cep(uf, localidade, logradouro):
     link = f'https://viacep.com.br/ws/{uf}/{localidade}/{logradouro}/json/'
     requisicao = requests.get(link)
-    print(requisicao)
     if requisicao.status_code == 200:
         return requisicao.json()
     else:
@@ -39,6 +36,44 @@ def calculardistanciatempo(cep1, cep2):
         #emmetros
         return tempo, distancia, tempotext, distanciatext
 
+def dimensoes():
+
+    dimensões = input('Digite as dimensões do produto em centímetros e considere quilos para o peso (Largura, Altura, Comprimento, Peso): ').split(',')
+    largura = float(dimensões[0])
+    altura = float(dimensões[1])
+    comprimento = float(dimensões[2])
+    peso = float(dimensões[3])
+    volume = largura * altura * comprimento
+
+    return largura, altura, comprimento, peso, volume
+
+def calculafrete(volume, distancia, peso):
+
+    frete = 10
+
+    if distancia < 80000:
+        frete += 0.0005 * distancia
+    elif distancia < 200000:
+        frete += 0.0002 * distancia
+    else:
+        frete += 0.000025 * distancia
+    if volume > 1000000:
+        #se for maior que 1 metros cubicos, o valor do frete aumenta
+        #para cada 1 litro o valor do frete aumenta 1 real
+        frete += (volume-1000000)*0.0001
+    if peso > 10:
+        #se for maior que 10kg, o valor do frete aumenta
+        #para cada 1kg, o valor do frete aumenta 50 centavos
+        frete += (peso-10)/2
+    return frete
+
+def printar_endereço(endereço):
+    print(f'\nCEP : {endereço["cep"]}')
+    print(f'Rua : {endereço["logradouro"]}')
+    print(f'Bairro : {endereço["bairro"]}')
+    print(f'Cidade : {endereço["localidade"]}')
+    print(f'Estado : {endereço["uf"]}')
+
 def entercontinuar():
     input('\nPressione enter para continuar...\n')
 
@@ -61,11 +96,7 @@ while loop:
             continue
         else:
             print('\nInformações do endereço:')
-            print(f'\nCEP : {informaçoesendereço["cep"]}')
-            print(f'Rua : {informaçoesendereço['logradouro']}')
-            print(f'Bairro : {informaçoesendereço['bairro']}')
-            print(f'Cidade : {informaçoesendereço['localidade']}')
-            print(f'Estado : {informaçoesendereço['uf']}')
+            printar_endereço(informaçoesendereço)
             entercontinuar()
         
     elif input_usuario == 2:
@@ -81,59 +112,33 @@ while loop:
             print('Endereço inválido')
         else:
             if bairro != '':
+                endereco_encontrado = False
                 for endereco in enderecospossiveis:
                     if bairro in endereco['bairro']:
-                        print(f'\nCEP: {endereco["cep"]}')
-                        print(f'Rua: {endereco["logradouro"]}')
-                        print(f'Bairro: {endereco["bairro"]}')
-                        print(f'Cidade: {endereco["localidade"]}')
-                        print(f'Estado: {endereco["uf"]}')
+                        printar_endereço(endereco)
                         entercontinuar()
-                        break
-                        #dps nois tira o break
-            else:
-                print(f'\nCEP: {enderecospossiveis[0]["cep"]}')
-                print(f'Rua: {enderecospossiveis[0]["logradouro"]}')
-                print(f'Bairro: {enderecospossiveis[0]["bairro"]}')
-                print(f'Cidade: {enderecospossiveis[0]["localidade"]}')
-                print(f'Estado: {enderecospossiveis[0]["uf"]}')
+                        endereco_encontrado = True
+                if not endereco_encontrado:
+                    print('\nEndereço com o bairro especificado não encontrado')
+                    entercontinuar()
 
+            else:
+                printar_endereço(enderecospossiveis[0])
                 entercontinuar()
     elif input_usuario == 3:
         cep1 = input('Digite o CEP ou endereço de origem: ')
         cep2 = input('Digite o CEP ou endereço de destino: ')
         tempo, distancia, tempotext, distanciatext = calculardistanciatempo(cep1, cep2)
-        print(tempo, distancia)
         if tempo and distancia == 'erro':
             print('Erro ao calcular a distância ou tempo, tente novamente.')
             entercontinuar()
             continue
         else:
-            dimensões= input('Digite as dimensões do produto em centímetros e considere quilos para o peso (Largura, Altura, Comprimento, Peso): ').split(',')
-            largura = float(dimensões[0])
-            altura = float(dimensões[1])
-            comprimento = float(dimensões[2])
-            peso = float(dimensões[3])
-            volume = largura * altura * comprimento
-            frete = 10
-            #acima de 2 metroscubicos, o valor fica maior
-            if distancia < 80000:
-                frete += 0.0005 * distancia
-            elif distancia < 200000:
-                frete += 0.0002 * distancia
-            else:
-                frete += 0.000025 * distancia
-            if volume > 1000000:
-                #se for maior que 1 metros cubicos, o valor do frete aumenta
-                #para cada 1000cm cubicos ou 0,0001 metrocubicos, o valor do frete aumenta 1 real
-                frete += (volume-1000000)*0.0001
-            if peso > 10:
-                #se for maior que 10kg, o valor do frete aumenta
-                #para cada 1kg, o valor do frete aumenta 50 centavos
-                frete += (peso-10)/2
+            largura, altura, comprimento, peso, volume = dimensoes()
+            frete = calculafrete(volume, distancia, peso)
             print(f'\nDistância: {distanciatext}')
             print(f'volume: {volume/1000000} metros cúbicos')
-            print(f'\nTempo estimado para entrega: {tempotext}')
+            print(f'Tempo estimado para entrega: {tempotext}')
             print(f'Frete estimado: R$ {frete}')
             entercontinuar()
     elif input_usuario == 4:
