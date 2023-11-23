@@ -134,8 +134,10 @@ while loop:
             entercontinuar()
             continue
         else:
+            
             largura, altura, comprimento, peso, volume = dimensoes()
             frete = calculafrete(volume, distancia, peso)
+            
             print(f'\nDistância: {distanciatext}')
             print(f'volume: {volume/1000000} metros cúbicos')
             print(f'Tempo estimado para entrega: {tempotext}')
