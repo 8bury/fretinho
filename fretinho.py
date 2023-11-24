@@ -6,54 +6,55 @@ from PIL import Image, ImageTk # utilizados para importar a imagem da web
 import requests
 from io import BytesIO
 
-def pedir_endereço():
-    cep = entry_cep.get()
-    link = f'https://viacep.com.br/ws/{cep}/json/'
-    requisicao = requests.get(link)
-    if requisicao.status_code == 200:
-        informaçoesendereço = requisicao.json()
-        if 'erro' in informaçoesendereço:
-            messagebox.showerror('Erro', 'CEP não encontrado')
+def pedir_endereço(cep):
+    if len(cep) != 8 or cep.isdigit() == False:
+        messagebox.showerror('Erro', 'CEP inválido')
+    else:
+        link = f'https://viacep.com.br/ws/{cep}/json/'
+        requisicao = requests.get(link)
+        if requisicao.status_code == 200:
+            informaçoesendereço = requisicao.json()
+            if 'erro' in informaçoesendereço:
+                messagebox.showerror('Erro', 'CEP não encontrado')
+            else:
+                printar_endereço(informaçoesendereço)
         else:
-            print('\nInformações do endereço:')
-            printar_endereço(informaçoesendereço)
+            messagebox.showerror('Erro', 'CEP não encontrado')
 
 def pedir_cep(uf, localidade, logradouro, bairro):
-    link = f'https://viacep.com.br/ws/{uf}/{localidade}/{logradouro}/json/'
-    requisicao = requests.get(link)
-    if requisicao.status_code == 200:
-        enderecospossiveis = requisicao.json()
-        if 'erro' in enderecospossiveis or len(enderecospossiveis) == 0:
-            print('Endereço inválido')
-        else:
-            if bairro != '':
-                endereco_encontrado = False
-                for endereco in enderecospossiveis:
-                    if bairro in endereco['bairro']:
-                        printar_endereço(endereco)
-                        entercontinuar()
-                        endereco_encontrado = True
-                if not endereco_encontrado:
-                    print('\nEndereço com o bairro especificado não encontrado')
-                    entercontinuar()
-
-            else:
-                printar_endereço(enderecospossiveis[0])
-                entercontinuar()
+    if uf == '' or localidade == '' or logradouro == '':
+        messagebox.showerror('Erro', 'Preencha todos os campos')
     else:
-        messagebox.showerror('Erro', 'Endereço não encontrado')
+        link = f'https://viacep.com.br/ws/{uf}/{localidade}/{logradouro}/json/'
+        requisicao = requests.get(link)
+        if requisicao.status_code == 200:
+            enderecospossiveis = requisicao.json()
+            if 'erro' in enderecospossiveis or len(enderecospossiveis) == 0:
+                messagebox.showerror('Erro', 'Endereço não encontrado')
+            else:
+                if bairro != '':
+                    endereco_encontrado = False
+                    for endereco in enderecospossiveis:
+                        if bairro.upper() in endereco['bairro'].upper():
+                            printar_endereço(endereco)
+                            
+                            endereco_encontrado = True
+                    if not endereco_encontrado:
+                        messagebox.showerror('Erro', 'Endereço com o bairro especificado não encontrado')
+                else:
+                    printar_endereço(enderecospossiveis[0])  
+        else:
+            messagebox.showerror('Erro', 'Endereço não encontrado')
     
 def calcularfrete(cep1, cep2, largura, altura, comprimento, peso):
     if largura.isdigit() == False or altura.isdigit() == False or comprimento.isdigit() == False or peso.isdigit() == False:
         messagebox.showerror('Erro', 'Dimensões inválidas')
-        return
     else:
         largura = float(largura)
         altura = float(altura)
         comprimento = float(comprimento)
         peso = float(peso)
         volume = largura * altura * comprimento
-        print(volume)
         api_file = open('apikey.txt', 'r')
         api_key = api_file.read()
         api_file.close()
@@ -88,7 +89,6 @@ def calcularfrete(cep1, cep2, largura, altura, comprimento, peso):
                 #se for maior que 10kg, o valor do frete aumenta
                 #para cada 1kg, o valor do frete aumenta 50 centavos
                 frete += (peso-10)/2
-            print(frete)
             textofrete['text'] = f'Frete: R${frete:.2f}\nTempo: {tempotext}\nDistância: {distanciatext}'
 
 def printar_endereço(endereço):
@@ -99,16 +99,21 @@ def printar_endereço(endereço):
     estado = endereço['uf']
     
     texto = f'CEP : {cep}\nRua : {rua}\nBairro : {bairro}\nCidade : {cidade}\nEstado : {estado}'
-    print(texto)
     textoendereço['text'] = texto
-def entercontinuar():
-    input('\nPressione enter para continuar...\n')
 
 
 #VARIAVÉL TEMPORÁRIA, APENAS PARA TESTAR O TESTE DE VERIFICAÇÃO E UTILIZAR O BOTÃO DE FAZER LOGIN.
+#tanto para ler como para escrever no arquivo, é necessário abrir o arquivo com o modo de leitura ou escrita.
+with open('usuarios.txt', 'r') as usuarios_file:
+    usuarios = usuarios_file.read()
+    transformar_em_dicionario = eval(usuarios)
+if type(transformar_em_dicionario) == dict:
+    usuarios = transformar_em_dicionario
+else:
+    usuarios = {}
+    messagebox.showerror('Erro', 'Arquivo de usuários corrompido')
 
-usuarios = {'usuario_normal': {'senha': 'senha_normal', 'nivel_acesso': 'normal'},
-            'usuario_admin': {'senha': 'senha_admin', 'nivel_acesso': 'admin'}}
+
 #FUNÇÃO PARA FAZER LOGIN, COMPARANDO OS DADOS DIGITADOS COM OS DADOS DO DICIONÁRIO USUARIOS.
 def fazer_login(nivel_acesso):
     usuario = entry_usuario.get()
@@ -120,36 +125,38 @@ def fazer_login(nivel_acesso):
     else:
         messagebox.showerror("Erro de Login", "Usuário ou senha incorretos")
 def opcao1tela():
-    global entry_cep, textoendereço
+    global textoendereço
     tela2.withdraw()
     tela3 = tk.Toplevel(tela2)
+    tela3.resizable(False, False)
     tela3.title("FRETINHO")
-    tela3.geometry("600x400")
+    tela3.geometry("600x600")
     label = tk.Label(tela3, text="Buscar Endereço por CEP", font=("Arial", 30))
     label.pack(pady=5, padx=5)
     label_cep = tk.Label(tela3, text="CEP:", font=("Arial", 10))
     label_cep.pack(pady=5, padx=5)
     entry_cep = tk.Entry(tela3, font=("Arial", 10))
     entry_cep.pack(pady=5, padx=5)
-    botao_buscar = tk.Button(tela3, text="Buscar", font=("Arial", 10), width=10, command=lambda: pedir_endereço())
+    botao_buscar = tk.Button(tela3, text="Buscar", font=("Arial", 10), width=10, command=lambda: pedir_endereço(entry_cep.get()))
     botao_buscar.pack(pady=5, padx=5)
     botao_voltar = tk.Button(tela3, text="Voltar", font=("Arial", 10), width=10, command=lambda: (tela3.destroy(), tela2.deiconify()))
     botao_voltar.pack(pady=5, padx=5)
     textoendereço = tk.Label(tela3, text='')
     textoendereço.pack(pady=5, padx=5)
 def opcao2tela():
-    global entry_uf, entry_cidade, entry_rua, entry_bairro, textoendereço
+    global textoendereço
     tela2.withdraw()
     tela3 = tk.Toplevel(tela2)
+    tela3.resizable(False, False)
     tela3.title("FRETINHO")
-    tela3.geometry("600x400")
+    tela3.geometry("600x600")
     label = tk.Label(tela3, text="Buscar CEP por endereço", font=("Arial", 30))
     label.pack(pady=5, padx=5)
-    label_uf = tk.Label(tela3, text="UF:", font=("Arial", 10))
+    label_uf = tk.Label(tela3, text="UF (abreviado):", font=("Arial", 10))
     label_uf.pack(pady=5, padx=5)
     entry_uf = tk.Entry(tela3, font=("Arial", 10))
     entry_uf.pack(pady=5, padx=5)
-    label_cidade = tk.Label(tela3, text="Cidade:", font=("Arial", 10))
+    label_cidade = tk.Label(tela3, text="Cidade (nome completo):", font=("Arial", 10))
     label_cidade.pack(pady=5, padx=5)
     entry_cidade = tk.Entry(tela3, font=("Arial", 10))
     entry_cidade.pack(pady=5, padx=5)
@@ -157,7 +164,7 @@ def opcao2tela():
     label_rua.pack(pady=5, padx=5)
     entry_rua = tk.Entry(tela3, font=("Arial", 10))
     entry_rua.pack(pady=5, padx=5)
-    label_bairro = tk.Label(tela3, text="Bairro:", font=("Arial", 10))
+    label_bairro = tk.Label(tela3, text="Bairro (OPCIONAL):", font=("Arial", 10))
     label_bairro.pack(pady=5, padx=5)
     entry_bairro = tk.Entry(tela3, font=("Arial", 10))
     entry_bairro.pack(pady=5, padx=5)
@@ -171,33 +178,34 @@ def opcao3tela():
     global textofrete
     tela2.withdraw()
     tela3 = tk.Toplevel(tela2)
+    tela3.resizable(False, False)
     tela3.title("FRETINHO")
-    tela3.geometry("600x400")
+    tela3.geometry("600x800")
     label = tk.Label(tela3, text="Calcular Frete", font=("Arial", 30))
     label.pack(pady=5, padx=5)
-    label_cep1 = tk.Label(tela3, text="CEP de origem:", font=("Arial", 10))
+    label_cep1 = tk.Label(tela3, text="CEP  ou endereço de origem:", font=("Arial", 10))
     label_cep1.pack(pady=5, padx=5)
     entry_cep1 = tk.Entry(tela3, font=("Arial", 10))
     entry_cep1.pack(pady=5, padx=5)
-    label_cep2 = tk.Label(tela3, text="CEP de destino:", font=("Arial", 10))
+    label_cep2 = tk.Label(tela3, text="CEP ou endereço de destino:", font=("Arial", 10))
     label_cep2.pack(pady=5, padx=5)
     entry_cep2 = tk.Entry(tela3, font=("Arial", 10))
     entry_cep2.pack(pady=5, padx=5)
     label_dimensoes = tk.Label(tela3, text="Dimensões do produto:", font=("Arial", 10))
     label_dimensoes.pack(pady=5, padx=5)
-    label_largura = tk.Label(tela3, text="Largura:", font=("Arial", 10))
+    label_largura = tk.Label(tela3, text="Largura (cm):", font=("Arial", 10))
     label_largura.pack(pady=5, padx=5)
     entry_largura = tk.Entry(tela3, font=("Arial", 10))
     entry_largura.pack(pady=5, padx=5)
-    label_altura = tk.Label(tela3, text="Altura:", font=("Arial", 10))
+    label_altura = tk.Label(tela3, text="Altura (cm):", font=("Arial", 10))
     label_altura.pack(pady=5, padx=5)
     entry_altura = tk.Entry(tela3, font=("Arial", 10))
     entry_altura.pack(pady=5, padx=5)
-    label_comprimento = tk.Label(tela3, text="Comprimento:", font=("Arial", 10))
+    label_comprimento = tk.Label(tela3, text="Comprimento(cm):", font=("Arial", 10))
     label_comprimento.pack(pady=5, padx=5)
     entry_comprimento = tk.Entry(tela3, font=("Arial", 10))
     entry_comprimento.pack(pady=5, padx=5)
-    label_peso = tk.Label(tela3, text="Peso:", font=("Arial", 10))
+    label_peso = tk.Label(tela3, text="Peso (kg):", font=("Arial", 10))
     label_peso.pack(pady=5, padx=5)
     entry_peso = tk.Entry(tela3, font=("Arial", 10))
     entry_peso.pack(pady=5, padx=5)
@@ -210,11 +218,12 @@ def opcao3tela():
 def opcao4tela():
     tela2.destroy()
     root.deiconify()
-    
+
 def abrir_tela2(nivel_acesso):
     root.withdraw()
     global tela2
     tela2 = tk.Toplevel(root)
+    tela2.resizable(False, False)
     tela2.title("FRETINHO")
     tela2.geometry("600x400") 
     if nivel_acesso == 'admin':
@@ -228,7 +237,14 @@ def abrir_tela2(nivel_acesso):
         opcao3.pack(pady=5, padx=5)
         opcao4 = tk.Button(tela2, text="Sair", font=("Arial", 10), width=30, command=lambda: opcao4tela())
         opcao4.pack(pady=5, padx=5)
-    
+def adicionar_usuario(user, senha, email, nivel_acesso):
+    if user not in usuarios and user != '' and senha != '' and email != '':
+        usuarios[user] = {'senha': senha, 'nivel_acesso': nivel_acesso, 'email': email}
+        with open('usuarios.txt', 'w') as usuarios_file:
+            usuarios_file.write(str(usuarios))
+        messagebox.showinfo('Sucesso', 'Usuário cadastrado com sucesso')
+    else:
+        messagebox.showerror('Erro', 'Usuário já cadastrado')
 def registrar():
     
     botao_login_admin.place(x=1000000)
@@ -289,15 +305,11 @@ def registrar():
     pass_entry = tk.Entry(container_login, font=("Arial", 9), show="*")
     pass_entry.pack(pady=1)
     
-    botao_adm = tk.Button(container_login, text="Adm", font=("Arial", 9), width=10)
+    botao_adm = tk.Button(container_login, text="Adm", font=("Arial", 9), width=10, command=lambda: adicionar_usuario(user_entry.get(), pass_entry.get(), email_entry.get(), 'admin'))
     botao_adm.pack(pady=2)
     
-    botao_user = tk.Button(container_login, text="User", font=("Arial", 9), width=10)
+    botao_user = tk.Button(container_login, text="User", font=("Arial", 9), width=10, command=lambda: adicionar_usuario(user_entry.get(), pass_entry.get(), email_entry.get(), 'normal'))
     botao_user.pack(pady=2)
-    
-    
-    #guardar emails de usuarios
-    #lista_email.append(email_entry)
 
 def obter_icone_da_web(url_icone):
     response = requests.get(url_icone)
@@ -307,6 +319,7 @@ def obter_icone_da_web(url_icone):
 
 # configuração da janela principal (utilizando tkinter, como a professora indicou)
 root = tk.Tk()
+root.resizable(False, False)
 root.title("FRETINHO")
 root.geometry("600x400")  # tamanho da root minimizada, ao iniciar.
 
@@ -357,8 +370,6 @@ botao_login_admin.pack(pady=5)
     
 botao_registro = tk.Button(container_login, text="Cadastre-se", command=registrar, font=('Arial', 10), width=10)
 botao_registro.pack(pady=5)
-
-# PROXIMA TELA A SER CRIADA COM OS DADOS DO FRETINHO - código de pedro
 
 
 root.mainloop()

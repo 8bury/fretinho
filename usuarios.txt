@@ -1,0 +1,1 @@
+{'usuario_normal': {'senha': 'senha_normal', 'nivel_acesso': 'normal'}, 'usuario_admin': {'senha': 'senha_admin', 'nivel_acesso': 'admin'}, 'pedro': {'senha': 'pedro', 'nivel_acesso': 'normal', 'email': 'pedro'}, 'admin': {'senha': 'admin', 'nivel_acesso': 'admin', 'email': 'admin'}}
