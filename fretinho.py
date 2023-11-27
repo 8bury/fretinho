@@ -49,50 +49,56 @@ def pedir_cep(uf, localidade, logradouro, bairro):
             messagebox.showerror('Erro', 'Endereço não encontrado')
 
 def calcularfrete(cep1, cep2, largura, altura, comprimento, peso):
-    if largura.isdigit() == False or altura.isdigit() == False or comprimento.isdigit() == False or peso.isdigit() == False:
-        messagebox.showerror('Erro', 'Dimensões inválidas')
+    if cep1 == '' or cep2 == '' or largura == '' or altura == '' or comprimento == '' or peso == '':
+        messagebox.showerror('Erro', 'Preencha todos os campos')
     else:
-        largura = float(largura)
-        altura = float(altura)
-        comprimento = float(comprimento)
-        peso = float(peso)
-        volume = largura * altura * comprimento
-        api_file = open('apikey.txt', 'r')
-        api_key = api_file.read()
-        api_file.close()
-
-        link = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric'
-        requisicao = requests.get(link + '&origins=' + cep1 + '&destinations=' + cep2 + '&key=' + api_key)
-        if 'ZERO_RESULTS' in requisicao.json()['rows'][0]['elements'][0]['status'] or 'NOT_FOUND' in requisicao.json()['rows'][0]['elements'][0]['status']:
-            messagebox.showerror('Erro', 'CEP não encontrado')
-            return
+        if largura.isdigit() == False or altura.isdigit() == False or comprimento.isdigit() == False or peso.isdigit() == False:
+            messagebox.showerror('Erro', 'Dimensões inválidas')
         else:
-            global tempo
-            tempo = requisicao.json()['rows'][0]['elements'][0]['duration']['value']
-            tempotext = requisicao.json()['rows'][0]['elements'][0]['duration']['text']
-            #emsegundos
+            largura = float(largura)
+            altura = float(altura)
+            comprimento = float(comprimento)
+            peso = float(peso)
+            volume = largura * altura * comprimento
+            api_file = open('apikey.txt', 'r')
+            api_key = api_file.read()
+            api_file.close()
 
-            distancia = requisicao.json()['rows'][0]['elements'][0]['distance']['value']
-            distanciatext = requisicao.json()['rows'][0]['elements'][0]['distance']['text']
-            #emmetros
-
-            frete = 10
-
-            if distancia < 80000:
-                frete += 0.0005 * distancia
-            elif distancia < 200000:
-                frete += 0.0002 * distancia
+            link = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric'
+            requisicao = requests.get(link + '&origins=' + cep1 + '&destinations=' + cep2 + '&key=' + api_key)
+            if 'ZERO_RESULTS' in requisicao.json()['rows'][0]['elements'][0]['status'] or 'NOT_FOUND' in requisicao.json()['rows'][0]['elements'][0]['status']:
+                messagebox.showerror('Erro', 'CEP não encontrado')
+                return
             else:
-                frete += 0.000025 * distancia
-            if volume > 1000000:
-                #se for maior que 1 metros cubicos, o valor do frete aumenta
-                #para cada 1 litro o valor do frete aumenta 1 real
-                frete += (volume-1000000)*0.0001
-            if peso > 10:
-                #se for maior que 10kg, o valor do frete aumenta
-                #para cada 1kg, o valor do frete aumenta 50 centavos
-                frete += (peso-10)/2
-            textofrete['text'] = f'Frete: R${frete:.2f}\nTempo: {tempotext}\nDistância: {distanciatext}'
+                global tempo
+                tempo = requisicao.json()['rows'][0]['elements'][0]['duration']['value']
+                tempotext = requisicao.json()['rows'][0]['elements'][0]['duration']['text']
+                #if tempo < 7200:
+                    #tempo += 7200
+                #emsegundos
+
+                distancia = requisicao.json()['rows'][0]['elements'][0]['distance']['value']
+                distanciatext = requisicao.json()['rows'][0]['elements'][0]['distance']['text']
+                #emmetros
+
+                frete = 10
+
+                if distancia < 80000:
+                    frete += 0.0005 * distancia
+                elif distancia < 200000:
+                    frete += 0.0002 * distancia
+                else:
+                    frete += 0.000025 * distancia
+                if volume > 1000000:
+                    #se for maior que 1 metros cubicos, o valor do frete aumenta
+                    #para cada 1 litro o valor do frete aumenta 1 real
+                    frete += (volume-1000000)*0.0001
+                if peso > 10:
+                    #se for maior que 10kg, o valor do frete aumenta
+                    #para cada 1kg, o valor do frete aumenta 50 centavos
+                    frete += (peso-10)/2
+                textofrete['text'] = f'Frete: R${frete:.2f}\nTempo: {tempotext}\nDistância: {distanciatext}'
+
 def enviarproduto(tempo):
     if tempo == 0:
         messagebox.showerror('Erro', 'Calcule o frete primeiro')
@@ -111,17 +117,25 @@ def enviarproduto(tempo):
     return
 
 def verificar_entregas(codigo):
-    if codigo in entregas:
-        tempodeentrega = entregas[codigo]['tempodeentrega']
-        temponahora = entregas[codigo]['temponahora']
-        tempoatual = time.time()
-        data_de_entrega = temponahora + tempodeentrega
-        if tempoatual >= data_de_entrega:
-            messagebox.showinfo('Sucesso', f'Produto entregue\n Tempo Atual: {tempoatual}\nTempo de Entrega: {data_de_entrega}')
-        else:
-            messagebox.showerror('Produto não entregue', f'Será entregue em breve\nTempo restante: {data_de_entrega - tempoatual}')
+    if codigo == '':
+        messagebox.showerror('Erro', 'Digite um código')
     else:
-        messagebox.showerror('Erro', 'Produto não entregue')
+        if codigo in entregas:
+            tempodeentrega = entregas[codigo]['tempodeentrega']
+            temponahora = entregas[codigo]['temponahora']
+            tempoatual = time.time()
+            tempoatualtext = time.localtime(tempoatual)
+            data_de_entrega = temponahora + tempodeentrega
+            data_de_entregatext = time.localtime(data_de_entrega)
+            if tempoatual >= data_de_entrega:
+                tempoatual_formatted = time.strftime('%Y-%m-%d %H:%M:%S', tempoatualtext)
+                data_de_entrega_formatted = time.strftime('%Y-%m-%d %H:%M:%S', data_de_entregatext)
+                messagebox.showinfo('Sucesso', f'Produto entregue\n Tempo Atual: {tempoatual_formatted}\nTempo de Entrega: {data_de_entrega_formatted}')
+            else:
+                tempo_restante = (data_de_entrega - tempoatual) // 60
+                messagebox.showerror('Produto não entregue', f'Será entregue em breve\nTempo restante: {tempo_restante} minutos')
+        else:
+            messagebox.showerror('Erro', 'Produto não encontrado')
 
 def printar_endereço(endereço):
     cep = endereço['cep']
@@ -132,7 +146,6 @@ def printar_endereço(endereço):
 
     texto = f'CEP : {cep}\nRua : {rua}\nBairro : {bairro}\nCidade : {cidade}\nEstado : {estado}'
     textoendereço['text'] = texto
-
 
 #VARIAVÉL TEMPORÁRIA, APENAS PARA TESTAR O TESTE DE VERIFICAÇÃO E UTILIZAR O BOTÃO DE FAZER LOGIN.
 #tanto para ler como para escrever no arquivo, é necessário abrir o arquivo com o modo de leitura ou escrita.
@@ -181,7 +194,8 @@ def opcao1tela():
     botao_voltar = tk.Button(tela3, text="Voltar", font=("Arial", 12), width=10, command=lambda: (tela3.destroy(), tela2.deiconify()))
     botao_voltar.place(x=250, y=300)
     textoendereço = tk.Label(tela3, text='')
-    textoendereço.place(x=250, y=360)
+    textoendereço.place(x=225, y=370)#nao consegui mudar pra ficar tudo retinho, nem com pack
+                                    #vai ter que ficar assim
     
 #abrir tela de buscar cep po end dentro da janela fretinho
 def opcao2tela():
@@ -210,7 +224,7 @@ def opcao2tela():
     botao_voltar = tk.Button(tela3, text="Voltar", font=("Arial", 12), width=10, command=lambda: (tela3.destroy(), tela2.deiconify()))
     botao_voltar.place(x=255, y=390)
     textoendereço = tk.Label(tela3, text='')
-    textoendereço.place(x=255, y=450)
+    textoendereço.place(x=225, y=450)
 
 #abrir tela calcular frete dentro da janela fretinho
 def opcao3tela():
@@ -244,12 +258,13 @@ def opcao3tela():
     label_peso.pack(pady=5, padx=5)
     entry_peso = tk.Entry(tela3, font=("Arial", 10))
     entry_peso.pack(pady=5, padx=5)
-    botao_buscar = tk.Button(tela3, text="Buscar", font=("Arial", 10), width=10, command=lambda: calcularfrete(entry_cep1.get(), entry_cep2.get(), entry_largura.get(), entry_altura.get(), entry_comprimento.get(), entry_peso.get()))
+    botao_buscar = tk.Button(tela3, text="Calcular", font=("Arial", 10), width=10, command=lambda: calcularfrete(entry_cep1.get(), entry_cep2.get(), entry_largura.get(), entry_altura.get(), entry_comprimento.get(), entry_peso.get()))
     botao_buscar.pack(pady=5, padx=5)
     botao_voltar = tk.Button(tela3, text="Voltar", font=("Arial", 10), width=10, command=lambda: (tela3.destroy(), tela2.deiconify()))
     botao_voltar.pack(pady=5, padx=5)
     textofrete = tk.Label(tela3, text='')
     textofrete.pack(pady=5, padx=5)
+    
 def opcao3telaadmin():
     global textofrete
     tela3 = criar_tela3(600,700)
@@ -290,7 +305,6 @@ def opcao3telaadmin():
     textofrete = tk.Label(tela3, text='')
     textofrete.pack(pady=5, padx=5)
 
-
 def opcao4tela():
     tela2.destroy()
     root.deiconify()
@@ -305,27 +319,29 @@ def abrir_tela2(nivel_acesso):
     screenwidth = tela2.winfo_screenwidth()//2 - 300
     tela2.geometry(f"600x400+{screenwidth}+{screenheight}") 
     if nivel_acesso == 'admin':
-        opcao1admin = tk.Button(tela2, text="Buscar endereço por CEP", font=("Arial", 10), width=30, command=lambda: opcao1tela())
-        opcao1admin.place(x=175, y=120)
-        opcao2admin = tk.Button(tela2, text="Buscar CEP por endereço", font=("Arial", 10), width=30, command=lambda: opcao2tela())
-        opcao2admin.place(x=175, y=160)
-        opcao3admin = tk.Button(tela2, text="Enviar Produto", font=("Arial", 10), width=30, command=lambda: opcao3telaadmin())
-        opcao3admin.place(x=175, y=200)
-        opcao4admin = tk.Button(tela2, text="Sair", font=("Arial", 10), width=30, command=lambda: opcao4tela())
-        opcao4admin.place(x=175, y=280)
+        opcao1admin = tk.Button(tela2, text="Buscar endereço por CEP", font=("Arial", 12), width=30, command=lambda: opcao1tela())
+        opcao1admin.place(x=160, y=80)
+        opcao2admin = tk.Button(tela2, text="Buscar CEP por endereço", font=("Arial", 12), width=30, command=lambda: opcao2tela())
+        opcao2admin.place(x=160, y=130)
+        opcao3admin = tk.Button(tela2, text="Enviar Produto", font=("Arial", 12), width=30, command=lambda: opcao3telaadmin())
+        opcao3admin.place(x=160, y=180)
+        opcao4admin = tk.Button(tela2, text="Voltar para login", font=("Arial", 12), width=30, command=lambda: opcao4tela())
+        opcao4admin.place(x=160, y=230)
+        
     else:
-        opcao1 = tk.Button(tela2, text="Buscar endereço por CEP", font=("Arial", 10), width=30, command=lambda: opcao1tela())
-        opcao1.place(x=175, y=120)
-        opcao2 = tk.Button(tela2, text="Buscar CEP por endereço", font=("Arial", 10), width=30, command=lambda: opcao2tela())
-        opcao2.place(x=175, y=160)
-        opcao3 = tk.Button(tela2, text="Calcular Frete", font=("Arial", 10), width=30, command=lambda: opcao3tela())
-        opcao3.place(x=175, y=200)
-        opcao4 = tk.Button(tela2, text="Sair", font=("Arial", 10), width=30, command=lambda: opcao4tela())
-        opcao4.place(x=175, y=240)
-        entry_codigo = tk.Entry(tela2, font=("Arial", 10))
-        entry_codigo.place(x=175, y=280)
-        opcao5 = tk.Button(tela2, text="Verificar Entregas", font=("Arial", 10), width=30, command=lambda: verificar_entregas(entry_codigo.get()))
-        opcao5.place(x=175, y=320)
+        opcao1 = tk.Button(tela2, text="Buscar endereço por CEP", font=("Arial", 12), width=30, command=lambda: opcao1tela())
+        opcao1.place(x=160, y=80)
+        opcao2 = tk.Button(tela2, text="Buscar CEP por endereço", font=("Arial", 12), width=30, command=lambda: opcao2tela())
+        opcao2.place(x=160, y=120)
+        opcao3 = tk.Button(tela2, text="Calcular Frete", font=("Arial", 12), width=30, command=lambda: opcao3tela())
+        opcao3.place(x=160, y=160)
+        opcao4 = tk.Button(tela2, text="Voltar para login", font=("Arial", 12), width=30, command=lambda: opcao4tela())
+        opcao4.place(x=160, y=200)
+        entry_codigo = tk.Entry(tela2, font=("Arial", 12))
+        entry_codigo.place(x=210, y=245)
+        opcao5 = tk.Button(tela2, text="Verificar Entregas", font=("Arial", 12), width=15, command=lambda: verificar_entregas(entry_codigo.get()))
+        opcao5.place(x=230, y=280)
+        
 def adicionar_usuario(user, senha, email, nivel_acesso):
     if user not in usuarios and user != '' and senha != '' and email != '':
         usuarios[user] = {'senha': senha, 'nivel_acesso': nivel_acesso, 'email': email}
@@ -333,7 +349,7 @@ def adicionar_usuario(user, senha, email, nivel_acesso):
             usuarios_file.write(str(usuarios))
         messagebox.showinfo('Sucesso', 'Usuário cadastrado com sucesso')
     else:
-        messagebox.showerror('Erro', 'Usuário já cadastrado')
+        messagebox.showerror('Erro', 'Usuário já cadastrado ou dados inválidos')
         
 def registrar():
 
@@ -400,9 +416,11 @@ def obter_icone_da_web(url_icone):
     icone = Image.open(BytesIO(response.content))
     icone = ImageTk.PhotoImage(icone)
     return icone
+
 tempo = 0
 usuarios = abrir_arquivo('usuarios', 'r')
 entregas = abrir_arquivo('entregas', 'r+')
+
 #configuração da janela principal (utilizando tkinter, como a professora indicou)
 root = tk.Tk()
 root.resizable(False, False)#o tamanho da tela não pode ser alterado
